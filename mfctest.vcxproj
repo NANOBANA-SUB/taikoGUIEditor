@@ -184,6 +184,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Chart.h" />
+    <ClInclude Include="DrawGraph.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Measure.h" />
     <ClInclude Include="mfctest.h" />
@@ -195,6 +196,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Chart.cpp" />
+    <ClCompile Include="DrawGraph.cpp" />
     <ClCompile Include="Measure.cpp" />
     <ClCompile Include="mfctest.cpp" />
     <ClCompile Include="mfctestDlg.cpp" />

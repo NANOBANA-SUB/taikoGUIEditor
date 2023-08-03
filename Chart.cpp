@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Chart.h"
+#include "Measure.h"
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -82,11 +83,130 @@ vector<Measure> Chart::ReadMeasure(string filePath)
     }
     else
     {
+        bool StartFlag = false;
+        bool EndFlag = false;
+        bool IsBarLine = true;
+        bool IsGoGo = false;
+        double HS = 1.0;
+        double MeasureBPM = BPM;
+        double MeasureVal = 1.0;
+        double NotePos = 0.0;
+        NoteType Type;
         while (getline(file, line))
         {
+            string TrimmedLine = trim(line);
 
+            if (TrimmedLine == "#START")
+            {
+                OutputDebugString(_T("#START\n"));
+                StartFlag = true;
+            }
+            if (TrimmedLine == "#END")
+            {
+                OutputDebugString(_T("#END\n"));
+                EndFlag = true;
+                break;
+            }
+            else if (StartFlag == true && EndFlag == false)
+            {
+                //コマンドの処理
+                if (TrimmedLine.compare(0, 1, "#") == 0)
+                {
+                    if (TrimmedLine.compare(0, 10, "#BPMCHANGE") == 0)
+                    {
+                        string subLine = TrimmedLine.substr(11);
+                        istringstream iss(subLine);
+                        iss >> MeasureBPM;
+
+                        // OutputDebugStringを用いてLEVELの値をデバッグ出力ウィンドウに出力します。
+                        ostringstream oss;
+                        oss << "BPMCHANGE: " << MeasureBPM << "\n";
+                        OutputDebugStringA(oss.str().c_str());
+                    }
+                    else if (TrimmedLine.compare(0, 10, "#GOGOSTART") == 0)
+                    {
+                        IsGoGo = true;
+                    }
+                    else if (TrimmedLine.compare(0, 8, "#GOGOEND") == 0)
+                    {
+                        IsGoGo = false;
+                    }
+                    else if (TrimmedLine.compare(0, 10, "#BARLINEON") == 0)
+                    {
+                        IsBarLine = true;
+                    }
+                    else if (TrimmedLine.compare(0, 11, "#BARLINEOFF") == 0)
+                    {
+                        IsBarLine = false;
+                    }
+                }
+                //ノーツの処理
+                else
+                {
+                    string fumen = TrimmedLine;
+                    if (!fumen.empty() && fumen[fumen.size() - 1] == ',')
+                    {
+                        fumen.erase(fumen.size() - 1);
+                    }
+                    for (int i = 0; i < fumen.size(); i++)
+                    {
+                        if (fumen[i] == '0')
+                        {
+                            Note note = Note(NoteType::None, NotePos);
+                            Notes.push_back(note);
+                        }
+                        else if (fumen[i] == '1')
+                        {
+                            Note note = Note(NoteType::Don, NotePos);
+                            Notes.push_back(note);
+                        }
+                        else if (fumen[i] == '2')
+                        {
+                            Note note = Note(NoteType::Katsu, NotePos);
+                            Notes.push_back(note);
+                        }
+                        else if (fumen[i] == '3')
+                        {
+                            Note note = Note(NoteType::BigDon, NotePos);
+                            Notes.push_back(note);
+                        }
+                        else if (fumen[i] == '4')
+                        {
+                            Note note = Note(NoteType::BigKatsu, NotePos);
+                            Notes.push_back(note);
+                        }
+                        NotePos += CalcNotePos(fumen, MeasureVal);
+                    }
+
+                    Measure measure = Measure(vector<Note>(Notes));
+
+                    measure.Beat = MeasureVal;
+                    measure.isGoGo = IsGoGo;
+                    measure.isBarline = IsBarLine;
+                    measure.HighSpeed = HS;
+                    measure.BPM = MeasureBPM;
+
+                    Measures.push_back(measure);
+
+                    NotePos = 0;
+
+                    Notes.clear();
+                }
+            }
         }
     }
+    return Measures;
+}
+
+double Chart::CalcNotePos(string fumen, double beat)
+{
+    //fumenの各ノーツのポジションを求める
+            //16分1個の位置は１小節が4/4だとすると50.１小節の長さは800.
+            //つまり、800をfumenの要素数で割ればそれがポジションになる(休符も同じく)
+
+    double MeasureLength = 800.0f;
+
+    return beat * MeasureLength / fumen.size();
 }
 
 string trim(const string& str)
